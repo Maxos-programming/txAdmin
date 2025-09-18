@@ -157,24 +157,29 @@ export default function BanTemplatesInputDialog({
                             <Label htmlFor="banReason" className="col-span-6 sm:col-auto">
                                 Reason
                             </Label>
-                            <AutosizeTextarea
-                                id="reason"
-                                placeholder="The reason for the ban, rule violated, etc."
-                                className="col-span-full sm:col-span-5"
-                                defaultValue={initialReason}
-                                ref={reasonRef}
-                                maxHeight={160}
-                                minLength={3}
-                                autoFocus
-                                required
-                                onChangeCapture={(e) => {
-                                    //prevent breaking line
-                                    const target = e.target as HTMLInputElement;
-                                    if (target.value.includes('\n')) {
-                                        target.value = target.value.replace(/\s*\r*\n+\s*/g, ' ');
-                                    }
-                                }}
-                            />
+                            <div className="col-span-full sm:col-span-5 space-y-2">
+                                <AutosizeTextarea
+                                    id="reason"
+                                    placeholder="The reason for the ban, rule violated, etc."
+                                    className="w-full"
+                                    defaultValue={initialReason}
+                                    ref={reasonRef}
+                                    maxHeight={160}
+                                    minLength={3}
+                                    autoFocus
+                                    required
+                                    onChangeCapture={(e) => {
+                                        //prevent breaking line
+                                        const target = e.target as HTMLInputElement;
+                                        if (target.value.includes('\n')) {
+                                            target.value = target.value.replace(/\s*\r*\n+\s*/g, ' ');
+                                        }
+                                    }}
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Use spacers below to create placeholders like {`{{player_name}}`} in your reason text.
+                                </p>
+                            </div>
                         </div>
                         
                         {/* Spacers Section */}

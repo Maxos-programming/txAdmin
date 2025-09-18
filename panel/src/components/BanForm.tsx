@@ -293,8 +293,15 @@ export default forwardRef(function BanForm({ banTemplates, disabled, onNavigateA
                     </DialogHeader>
                     <div className="space-y-4">
                         <p className="text-sm text-muted-foreground">
-                            This template has placeholders that need values. Fill them out below:
+                            This template uses placeholders that will be replaced with actual values. Fill them out below or leave empty to use defaults:
                         </p>
+                        <div className="bg-muted/50 p-3 rounded-md text-sm">
+                            <strong>Preview:</strong> {selectedTemplate ? replaceBanReasonSpacers(
+                                selectedTemplate.reason, 
+                                selectedTemplate.spacers || [], 
+                                spacerValues
+                            ) : ''}
+                        </div>
                         {selectedTemplate?.spacers?.map((spacer, index) => (
                             <div key={index} className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor={`spacer-${index}`} className="text-right font-mono text-sm">
