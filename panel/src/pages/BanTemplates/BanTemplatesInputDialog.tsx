@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AutosizeTextAreaRef, AutosizeTextarea } from "@/components/ui/autosize-textarea";
 import { BanTemplatesInputData } from "./BanTemplatesPage";
-import { BanDurationType } from "@shared/otherTypes";
+import { BanDurationType, BanTemplateSpacerType } from "@shared/otherTypes";
 import { banDurationToString } from "@/lib/utils";
 import { txToast } from "@/components/TxToaster";
+import { PlusIcon, XIcon } from "lucide-react";
 
 //Default dropdown options
 const dropdownOptions = [
@@ -40,8 +41,10 @@ export default function BanTemplatesInputDialog({
     let initialSelectedDuration = '2 days';
     let initialCustomValue = undefined;
     let initialCustomUnits = 'days';
+    let initialSpacers: BanTemplateSpacerType[] = [];
     if (reasonData) {
         initialReason = reasonData.reason;
+        initialSpacers = reasonData.spacers || [];
         const isDefaultDuration = dropdownOptions.includes(banDurationToString(reasonData.duration));
         //technically don't need to check if permanent, but typescript is complaining
         if (isDefaultDuration || reasonData.duration === 'permanent') {
@@ -58,12 +61,43 @@ export default function BanTemplatesInputDialog({
     const customMultiplierRef = useRef<HTMLInputElement>(null);
     const [selectedDuration, setSelectedDuration] = useState(initialSelectedDuration);
     const [customUnits, setCustomUnits] = useState(initialCustomUnits);
+    const [spacers, setSpacers] = useState<BanTemplateSpacerType[]>(initialSpacers);
+
+    // Helper functions for spacers management
+    const addSpacer = () => {
+        setSpacers(prev => [...prev, { name: '', placeholder: '' }]);
+    };
+
+    const removeSpacer = (index: number) => {
+        setSpacers(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const updateSpacer = (index: number, field: 'name' | 'placeholder', value: string) => {
+        setSpacers(prev => prev.map((spacer, i) => 
+            i === index ? { ...spacer, [field]: value } : spacer
+        ));
+    };
+
+    const insertSpacerIntoReason = (spacerName: string) => {
+        if (!reasonRef.current) return;
+        const textarea = reasonRef.current.textArea;
+        const placeholder = `{{${spacerName}}}`;
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const currentValue = textarea.value;
+        const newValue = currentValue.substring(0, start) + placeholder + currentValue.substring(end);
+        textarea.value = newValue;
+        // Set cursor position after the inserted placeholder
+        textarea.setSelectionRange(start + placeholder.length, start + placeholder.length);
+        textarea.focus();
+    };
 
     useEffect(() => {
         const timeout = setTimeout(() => {
             if (isDialogOpen) return;
             setSelectedDuration(initialSelectedDuration);
             setCustomUnits(initialCustomUnits);
+            setSpacers(initialSpacers);
             if (reasonRef.current) reasonRef.current.textArea.value = '';
             if (customMultiplierRef.current) customMultiplierRef.current.value = '';
         }, 500);
@@ -80,6 +114,15 @@ export default function BanTemplatesInputDialog({
             form.reason.focus();
             return txToast.warning('Reason must be at least 3 characters long');
         }
+
+        // Validate spacers
+        const validSpacers = spacers.filter(spacer => spacer.name.trim() && spacer.placeholder.trim());
+        const spacerNames = validSpacers.map(s => s.name.trim());
+        const duplicateNames = spacerNames.filter((name, index) => spacerNames.indexOf(name) !== index);
+        if (duplicateNames.length > 0) {
+            return txToast.warning(`Duplicate spacer names: ${duplicateNames.join(', ')}`);
+        }
+
         let duration: BanDurationType;
         if (selectedDuration === 'permanent') {
             duration = 'permanent';
@@ -99,7 +142,7 @@ export default function BanTemplatesInputDialog({
                 unit: unit as 'hours' | 'days' | 'weeks' | 'months'
             };
         }
-        onSave({ id, reason, duration });
+        onSave({ id, reason, duration, spacers: validSpacers.length > 0 ? validSpacers : undefined });
     }
 
     return (
@@ -133,6 +176,72 @@ export default function BanTemplatesInputDialog({
                                 }}
                             />
                         </div>
+                        
+                        {/* Spacers Section */}
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <Label className="text-sm font-medium">
+                                    Replaceable Spacers (Optional)
+                                </Label>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={addSpacer}
+                                    className="h-8"
+                                >
+                                    <PlusIcon className="size-4 mr-1" />
+                                    Add Spacer
+                                </Button>
+                            </div>
+                            
+                            {spacers.length > 0 && (
+                                <div className="text-xs text-muted-foreground">
+                                    Spacers allow you to create placeholders like {`{{player_name}}`} in your ban reason that can be replaced with actual values when the template is used.
+                                </div>
+                            )}
+                            
+                            <div className="space-y-2">
+                                {spacers.map((spacer, index) => (
+                                    <div key={index} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center">
+                                        <Input
+                                            placeholder="spacer_name"
+                                            value={spacer.name}
+                                            onChange={(e) => updateSpacer(index, 'name', e.target.value)}
+                                            className="text-sm"
+                                        />
+                                        <Input
+                                            placeholder="Default text"
+                                            value={spacer.placeholder}
+                                            onChange={(e) => updateSpacer(index, 'placeholder', e.target.value)}
+                                            className="text-sm"
+                                        />
+                                        <div className="flex gap-1">
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => insertSpacerIntoReason(spacer.name)}
+                                                disabled={!spacer.name.trim()}
+                                                className="h-8 px-2 text-xs"
+                                            >
+                                                Insert
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => removeSpacer(index)}
+                                                className="h-8 px-2"
+                                            >
+                                                <XIcon className="size-3" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
                         <div className="grid grid-cols-6 items-center gap-4">
                             <Label htmlFor="durationSelect" className="col-span-6 sm:col-auto">
                                 Duration

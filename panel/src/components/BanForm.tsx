@@ -8,6 +8,9 @@ import { DropDownSelect, DropDownSelectContent, DropDownSelectItem, DropDownSele
 import { banDurationToShortString, banDurationToString, cn } from "@/lib/utils";
 import { Link, useLocation } from "wouter";
 import type { BanTemplatesDataType } from "@shared/otherTypes";
+import { replaceBanReasonSpacers } from "@shared/otherTypes";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 // Consts
 const reasonTruncateLength = 150;
@@ -40,6 +43,9 @@ export default forwardRef(function BanForm({ banTemplates, disabled, onNavigateA
     const [currentDuration, setCurrentDuration] = useState('2 days');
     const [customUnits, setCustomUnits] = useState('days');
     const closeModal = useClosePlayerModal();
+    const [spacerDialogOpen, setSpacerDialogOpen] = useState(false);
+    const [selectedTemplate, setSelectedTemplate] = useState<BanTemplatesDataType | null>(null);
+    const [spacerValues, setSpacerValues] = useState<Record<string, string>>({});
 
     //Exposing methods to the parent
     useImperativeHandle(ref, () => {
@@ -74,21 +80,52 @@ export default forwardRef(function BanForm({ banTemplates, disabled, onNavigateA
             const template = banTemplates.find(template => template.id === value);
             if (!template) return;
 
-            const processedDuration = banDurationToString(template.duration);
-            if (defaultDurations.includes(processedDuration)) {
-                setCurrentDuration(processedDuration);
-            } else if (typeof template.duration === 'object') {
-                setCurrentDuration('custom');
-                customMultiplierRef.current!.value = template.duration.value.toString();
-                setCustomUnits(template.duration.unit);
+            // Check if template has spacers that need values
+            if (template.spacers && template.spacers.length > 0) {
+                setSelectedTemplate(template);
+                // Initialize spacer values with placeholders
+                const initialValues: Record<string, string> = {};
+                for (const spacer of template.spacers) {
+                    initialValues[spacer.name] = '';
+                }
+                setSpacerValues(initialValues);
+                setSpacerDialogOpen(true);
+                return;
             }
 
-            reasonRef.current!.value = template.reason;
-            setTimeout(() => {
-                reasonRef.current!.focus();
-            }, 50);
+            // Apply template directly if no spacers
+            applyTemplate(template, {});
         }
     }
+
+    const applyTemplate = (template: BanTemplatesDataType, values: Record<string, string>) => {
+        const processedDuration = banDurationToString(template.duration);
+        if (defaultDurations.includes(processedDuration)) {
+            setCurrentDuration(processedDuration);
+        } else if (typeof template.duration === 'object') {
+            setCurrentDuration('custom');
+            customMultiplierRef.current!.value = template.duration.value.toString();
+            setCustomUnits(template.duration.unit);
+        }
+
+        const processedReason = template.spacers && template.spacers.length > 0 
+            ? replaceBanReasonSpacers(template.reason, template.spacers, values)
+            : template.reason;
+        
+        reasonRef.current!.value = processedReason;
+        setTimeout(() => {
+            reasonRef.current!.focus();
+        }, 50);
+    };
+
+    const handleSpacerDialogConfirm = () => {
+        if (selectedTemplate) {
+            applyTemplate(selectedTemplate, spacerValues);
+        }
+        setSpacerDialogOpen(false);
+        setSelectedTemplate(null);
+        setSpacerValues({});
+    };
 
     //Ban templates render optimization
     const processedTemplates = useMemo(() => {
@@ -98,15 +135,24 @@ export default forwardRef(function BanForm({ banTemplates, disabled, onNavigateA
             const reason = template.reason.length > reasonTruncateLength
                 ? template.reason.slice(0, reasonTruncateLength - 3) + '...'
                 : template.reason;
+            const hasSpacers = template.spacers && template.spacers.length > 0;
             return (
                 <DropDownSelectItem
                     key={index}
                     value={template.id}
                     className="focus:bg-secondary focus:text-secondary-foreground"
                 >
-                    <span
-                        className="inline-block pr-1 font-mono opacity-75 min-w-[4ch]"
-                    >{duration}</span> {reason}
+                    <div className="flex items-center gap-2 w-full">
+                        <span
+                            className="inline-block pr-1 font-mono opacity-75 min-w-[4ch]"
+                        >{duration}</span>
+                        <span className="flex-1">{reason}</span>
+                        {hasSpacers && (
+                            <span className="text-xs opacity-60 bg-secondary px-1 rounded">
+                                {template.spacers.length} spacer{template.spacers.length > 1 ? 's' : ''}
+                            </span>
+                        )}
+                    </div>
                 </DropDownSelectItem>
             );
         });
@@ -238,6 +284,45 @@ export default forwardRef(function BanForm({ banTemplates, disabled, onNavigateA
                     </div>
                 </div>
             </div>
+            
+            {/* Spacer Values Dialog */}
+            <Dialog open={spacerDialogOpen} onOpenChange={setSpacerDialogOpen}>
+                <DialogContent className="md:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Fill Template Values</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <p className="text-sm text-muted-foreground">
+                            This template has placeholders that need values. Fill them out below:
+                        </p>
+                        {selectedTemplate?.spacers?.map((spacer, index) => (
+                            <div key={index} className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor={`spacer-${index}`} className="text-right font-mono text-sm">
+                                    {`{{${spacer.name}}}`}
+                                </Label>
+                                <Input
+                                    id={`spacer-${index}`}
+                                    className="col-span-3"
+                                    placeholder={spacer.placeholder}
+                                    value={spacerValues[spacer.name] || ''}
+                                    onChange={(e) => setSpacerValues(prev => ({
+                                        ...prev,
+                                        [spacer.name]: e.target.value
+                                    }))}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setSpacerDialogOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleSpacerDialogConfirm}>
+                            Apply Template
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 });

@@ -24,12 +24,30 @@ export const BanDurationTypeSchema = z.union([
 ]);
 export type BanDurationType = z.infer<typeof BanDurationTypeSchema>;
 
+export const BanTemplateSpacerSchema = z.object({
+    name: z.string().min(1).max(50), // spacer name like "player_name", "violation"
+    placeholder: z.string().min(1).max(100), // default text to show in reason template
+});
+
 export const BanTemplatesDataSchema = z.object({
     id: z.string().length(BAN_TEMPLATE_ID_LENGTH), //nanoid fixed at 21 chars
     reason: z.string().min(3).max(2048), //should be way less, but just in case
     duration: BanDurationTypeSchema,
+    spacers: z.array(BanTemplateSpacerSchema).optional(), // optional spacers for text replacement
 });
+export type BanTemplateSpacerType = z.infer<typeof BanTemplateSpacerSchema>;
 export type BanTemplatesDataType = z.infer<typeof BanTemplatesDataSchema>;
+
+//Replace spacers in ban reason text
+export const replaceBanReasonSpacers = (reason: string, spacers: BanTemplateSpacerType[], values: Record<string, string>): string => {
+    let result = reason;
+    for (const spacer of spacers) {
+        const placeholder = `{{${spacer.name}}}`;
+        const value = values[spacer.name] || spacer.placeholder;
+        result = result.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), value);
+    }
+    return result;
+};
 
 //Ensure all templates have unique ids
 export const polishBanTemplatesArray = (input: BanTemplatesDataType[]) => {

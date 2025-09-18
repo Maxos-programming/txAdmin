@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import BanTemplatesInputDialog from "./BanTemplatesInputDialog";
 import BanTemplatesListItem from "./BanTemplatesListItem";
 import BanTemplatesListAddButton from "./BanTemplatesListAddButton";
-import { BanDurationType, BanTemplatesDataType, GetBanTemplatesSuccessResp, SaveBanTemplatesReq, SaveBanTemplatesResp } from "@shared/otherTypes";
+import { BanDurationType, BanTemplatesDataType, BanTemplateSpacerType, GetBanTemplatesSuccessResp, SaveBanTemplatesReq, SaveBanTemplatesResp } from "@shared/otherTypes";
 import { DndSortableGroup, DndSortableItem } from "@/components/dndSortable";
 import { DragEndEvent } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
@@ -22,6 +22,7 @@ export type BanTemplatesInputData = {
     id: string | null;
     reason: string;
     duration: BanDurationType;
+    spacers?: BanTemplateSpacerType[];
 }
 
 type DataUpdaterFunc = (prev: BanTemplatesDataType[]) => BanTemplatesDataType[];
@@ -98,11 +99,11 @@ function BanTemplatesPageInner() {
         }
     }
 
-    const handleOnSave = ({ id, reason, duration }: BanTemplatesInputData) => {
+    const handleOnSave = ({ id, reason, duration, spacers }: BanTemplatesInputData) => {
         if (id) {
             updateBackend((prev) =>
                 prev.map((item) =>
-                    item.id === id ? { id, reason, duration } : item
+                    item.id === id ? { id, reason, duration, spacers } : item
                 )
             );
         } else {
@@ -111,7 +112,8 @@ function BanTemplatesPageInner() {
                 {
                     id: nanoid(21),
                     reason,
-                    duration
+                    duration,
+                    spacers,
                 },
             ]);
         }
