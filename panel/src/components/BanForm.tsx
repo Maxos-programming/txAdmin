@@ -83,7 +83,7 @@ export default forwardRef(function BanForm({ banTemplates, disabled, onNavigateA
                 setCustomUnits(template.duration.unit);
             }
 
-            reasonRef.current!.value = template.reason;
+            reasonRef.current!.value = (template as any).text ?? template.reason;
             setTimeout(() => {
                 reasonRef.current!.focus();
             }, 50);
@@ -95,9 +95,10 @@ export default forwardRef(function BanForm({ banTemplates, disabled, onNavigateA
         if (!banTemplates) return;
         return banTemplates.map((template, index) => {
             const duration = banDurationToShortString(template.duration);
-            const reason = template.reason.length > reasonTruncateLength
-                ? template.reason.slice(0, reasonTruncateLength - 3) + '...'
-                : template.reason;
+            const title = template.reason;
+            const reason = title.length > reasonTruncateLength
+                ? title.slice(0, reasonTruncateLength - 3) + '...'
+                : title;
             return (
                 <DropDownSelectItem
                     key={index}

@@ -40,8 +40,10 @@ export default function BanTemplatesInputDialog({
     let initialSelectedDuration = '2 days';
     let initialCustomValue = undefined;
     let initialCustomUnits = 'days';
+    let initialText = '';
     if (reasonData) {
-        initialReason = reasonData.reason;
+    initialReason = reasonData.reason; //now used as Title
+    initialText = reasonData.text ?? '';
         const isDefaultDuration = dropdownOptions.includes(banDurationToString(reasonData.duration));
         //technically don't need to check if permanent, but typescript is complaining
         if (isDefaultDuration || reasonData.duration === 'permanent') {
@@ -54,7 +56,8 @@ export default function BanTemplatesInputDialog({
     }
 
     //Setting the states
-    const reasonRef = useRef<AutosizeTextAreaRef>(null);
+    const reasonTextRef = useRef<AutosizeTextAreaRef>(null);
+    const titleRef = useRef<HTMLInputElement>(null);
     const customMultiplierRef = useRef<HTMLInputElement>(null);
     const [selectedDuration, setSelectedDuration] = useState(initialSelectedDuration);
     const [customUnits, setCustomUnits] = useState(initialCustomUnits);
@@ -64,7 +67,8 @@ export default function BanTemplatesInputDialog({
             if (isDialogOpen) return;
             setSelectedDuration(initialSelectedDuration);
             setCustomUnits(initialCustomUnits);
-            if (reasonRef.current) reasonRef.current.textArea.value = '';
+            if (reasonTextRef.current) reasonTextRef.current.textArea.value = '';
+            if (titleRef.current) titleRef.current.value = '';
             if (customMultiplierRef.current) customMultiplierRef.current.value = '';
         }, 500);
         return () => clearTimeout(timeout);
@@ -74,11 +78,16 @@ export default function BanTemplatesInputDialog({
         e.preventDefault();
         const form = e.currentTarget;
         const id = reasonData?.id || null;
-        const reason = form.reason.value.trim();
-        form.reason.value = reason; //just to make sure the field is also trimmed
-        if (reason.length < 3) {
-            form.reason.focus();
+        const title = form.label.value.trim();
+        const text = (form.reason?.value ?? '').trim();
+        form.label.value = title; //trim in field as well
+        if (title.length < 3) {
+            form.label.focus();
             return txToast.warning('Reason must be at least 3 characters long');
+        }
+        if (text.length < 3) {
+            form.reason.focus();
+            return txToast.warning('Reason text must be at least 3 characters long');
         }
         let duration: BanDurationType;
         if (selectedDuration === 'permanent') {
@@ -99,7 +108,7 @@ export default function BanTemplatesInputDialog({
                 unit: unit as 'hours' | 'days' | 'weeks' | 'months'
             };
         }
-        onSave({ id, reason, duration });
+        onSave({ id, reason: title, duration, text });
     }
 
     return (
@@ -111,18 +120,33 @@ export default function BanTemplatesInputDialog({
                             <DialogTitle>{reasonData ? 'Edit' : 'Add'} Template</DialogTitle>
                         </DialogHeader>
                         <div className="grid grid-cols-6 items-center gap-4">
-                            <Label htmlFor="banReason" className="col-span-6 sm:col-auto">
-                                Reason
+                            <Label htmlFor="label" className="col-span-6 sm:col-auto">
+                                Title
+                            </Label>
+                            <Input
+                                id="label"
+                                name="label"
+                                placeholder="Short title shown in the templates list"
+                                className="col-span-full sm:col-span-5"
+                                defaultValue={initialReason}
+                                ref={titleRef}
+                                minLength={3}
+                                autoFocus
+                                required
+                            />
+                        </div>
+                        <div className="grid grid-cols-6 items-center gap-4">
+                            <Label htmlFor="reason" className="col-span-6 sm:col-auto">
+                                Reason Text
                             </Label>
                             <AutosizeTextarea
                                 id="reason"
-                                placeholder="The reason for the ban, rule violated, etc."
+                                placeholder="The text that will be used as the actual ban reason"
                                 className="col-span-full sm:col-span-5"
-                                defaultValue={initialReason}
-                                ref={reasonRef}
+                                defaultValue={initialText}
+                                ref={reasonTextRef}
                                 maxHeight={160}
                                 minLength={3}
-                                autoFocus
                                 required
                                 onChangeCapture={(e) => {
                                     //prevent breaking line

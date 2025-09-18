@@ -7,6 +7,7 @@ type BanTemplatesListItemProps = {
     id: string;
     reason: string;
     duration: BanDurationType;
+    text?: string;
     onEdit: (id: string) => void;
     onRemove: (id: string) => void;
     disabled: boolean;

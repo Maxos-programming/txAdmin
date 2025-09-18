@@ -22,6 +22,7 @@ export type BanTemplatesInputData = {
     id: string | null;
     reason: string;
     duration: BanDurationType;
+    text?: string;
 }
 
 type DataUpdaterFunc = (prev: BanTemplatesDataType[]) => BanTemplatesDataType[];
@@ -98,11 +99,11 @@ function BanTemplatesPageInner() {
         }
     }
 
-    const handleOnSave = ({ id, reason, duration }: BanTemplatesInputData) => {
+    const handleOnSave = ({ id, reason, duration, text }: BanTemplatesInputData) => {
         if (id) {
             updateBackend((prev) =>
                 prev.map((item) =>
-                    item.id === id ? { id, reason, duration } : item
+                    item.id === id ? { id, reason, duration, text } : item
                 )
             );
         } else {
@@ -111,7 +112,8 @@ function BanTemplatesPageInner() {
                 {
                     id: nanoid(21),
                     reason,
-                    duration
+                    duration,
+                    text
                 },
             ]);
         }

@@ -27,6 +27,13 @@ Legend:
     - doesn't seem to be neither fontSize nor lineHeight
     - NOTE: this might solve itself with the WebGL renderer update, so try that first
 
+## Notes
+- Ban Templates: Title vs Reason Text
+    - Schema: added optional field `text` (min 3, max 2048)
+    - UI: `reason` is now treated as Title; the actual ban reason uses `text` if present, else falls back to `reason`.
+    - Affected areas: panel BanForm, panel BanTemplates editor, NUI player modal ban tab.
+    - Backwards compatible with existing configs.
+
 ## Refactor + DX
 - [x] deprecate fxRunner.srvCmd
     - deprecate liveConsoleCmdHandler 

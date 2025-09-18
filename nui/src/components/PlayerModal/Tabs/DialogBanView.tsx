@@ -173,14 +173,17 @@ const DialogBanView: React.FC = () => {
     return banTemplates.map((template, index) => ({
       id: template.id,
       label: template.reason,
+      text: (template as any).text ?? template.reason,
     }));
   }, [banTemplates]);
 
   const handleTemplateChange = (event: React.SyntheticEvent, value: any, reason: string, details?: any) => {
     //reason = One of "createOption", "selectOption", "removeOption", "blur" or "clear".
     if (reason !== 'selectOption' || value === null) return;
-    const template = banTemplates.find(template => template.id === value.id);
+  const template = banTemplates.find(template => template.id === value.id);
     if (!template) return;
+  // Set the actual ban reason from the new text field (fallback to title)
+  setReason((template as any).text ?? template.reason);
 
     const processedDuration = banDurationToString(template.duration);
     if (defaultDurations.includes(processedDuration)) {
