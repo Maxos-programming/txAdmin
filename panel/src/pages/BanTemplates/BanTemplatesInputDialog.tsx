@@ -42,8 +42,8 @@ export default function BanTemplatesInputDialog({
     let initialCustomUnits = 'days';
     let initialText = '';
     if (reasonData) {
-    initialReason = reasonData.reason; //now used as Title
-    initialText = reasonData.text ?? '';
+        initialReason = reasonData.reason; //now used as Title
+        initialText = reasonData.text ?? '';
         const isDefaultDuration = dropdownOptions.includes(banDurationToString(reasonData.duration));
         //technically don't need to check if permanent, but typescript is complaining
         if (isDefaultDuration || reasonData.duration === 'permanent') {
@@ -78,12 +78,12 @@ export default function BanTemplatesInputDialog({
         e.preventDefault();
         const form = e.currentTarget;
         const id = reasonData?.id || null;
-        const title = form.label.value.trim();
-        const text = (form.reason?.value ?? '').trim();
+    const title = form.label.value.trim();
+    const text = (form.reason?.value ?? '').trim();
         form.label.value = title; //trim in field as well
         if (title.length < 3) {
             form.label.focus();
-            return txToast.warning('Reason must be at least 3 characters long');
+            return txToast.warning('Title must be at least 3 characters long');
         }
         if (text.length < 3) {
             form.reason.focus();
@@ -156,6 +156,14 @@ export default function BanTemplatesInputDialog({
                                     }
                                 }}
                             />
+                        </div>
+                        <div className="text-xs text-muted-foreground space-y-1">
+                            <p>Placeholders you can use inside Reason Text:</p>
+                            <ul className="list-disc pl-4">
+                                <li>%author — the admin applying the ban</li>
+                                <li>%duration — humanized duration (e.g. 2 days, 1 week, permanent)</li>
+                                <li>%expires — local date/time when the ban expires (blank for permanent)</li>
+                            </ul>
                         </div>
                         <div className="grid grid-cols-6 items-center gap-4">
                             <Label htmlFor="durationSelect" className="col-span-6 sm:col-auto">

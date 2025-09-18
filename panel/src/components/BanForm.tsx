@@ -6,6 +6,8 @@ import { ClipboardPasteIcon, ExternalLinkIcon, Loader2Icon } from "lucide-react"
 import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { DropDownSelect, DropDownSelectContent, DropDownSelectItem, DropDownSelectTrigger } from "@/components/dropDownSelect";
 import { banDurationToShortString, banDurationToString, cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/auth";
+import { tsToLocaleDateTimeString } from "@/lib/dateTime";
 import { Link, useLocation } from "wouter";
 import type { BanTemplatesDataType } from "@shared/otherTypes";
 
@@ -40,6 +42,7 @@ export default forwardRef(function BanForm({ banTemplates, disabled, onNavigateA
     const [currentDuration, setCurrentDuration] = useState('2 days');
     const [customUnits, setCustomUnits] = useState('days');
     const closeModal = useClosePlayerModal();
+    const { authData } = useAuth();
 
     //Exposing methods to the parent
     useImperativeHandle(ref, () => {
@@ -83,7 +86,27 @@ export default forwardRef(function BanForm({ banTemplates, disabled, onNavigateA
                 setCustomUnits(template.duration.unit);
             }
 
-            reasonRef.current!.value = (template as any).text ?? template.reason;
+            // Build reason from template text/title and expand placeholders
+            const now = Date.now();
+            const text = (template as any).text ?? template.reason;
+            const humanDuration = banDurationToString(template.duration);
+            let expiresText = '';
+            if (template.duration !== 'permanent' && typeof template.duration === 'object') {
+                let ms = 0;
+                const unit = template.duration.unit;
+                const val = template.duration.value;
+                if (unit === 'hours') ms = val * 60 * 60 * 1000;
+                else if (unit === 'days') ms = val * 24 * 60 * 60 * 1000;
+                else if (unit === 'weeks') ms = val * 7 * 24 * 60 * 60 * 1000;
+                else if (unit === 'months') ms = val * 30 * 24 * 60 * 60 * 1000; // approx
+                expiresText = tsToLocaleDateTimeString(now + ms, 'long', 'short');
+            }
+            const author = (authData && 'name' in authData) ? authData.name : '';
+            const expanded = text
+                .replace(/%author/g, author)
+                .replace(/%duration/g, humanDuration)
+                .replace(/%expires/g, expiresText);
+            reasonRef.current!.value = expanded;
             setTimeout(() => {
                 reasonRef.current!.focus();
             }, 50);
