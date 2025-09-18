@@ -6,6 +6,8 @@ dist/*
 license_report/*
 .tsc/*
 *.ignore.*
+tsconfig.tsbuildinfo
+*.tsbuildinfo
 /start_*.bat
 monitor-*.zip
 bundle_size_report.html
