@@ -121,7 +121,7 @@ export default function BanTemplatesInputDialog({
                         </DialogHeader>
                         <div className="grid grid-cols-6 items-center gap-4">
                             <Label htmlFor="label" className="col-span-6 sm:col-auto">
-                                Title
+                                Internal Name
                             </Label>
                             <Input
                                 id="label"
@@ -137,7 +137,7 @@ export default function BanTemplatesInputDialog({
                         </div>
                         <div className="grid grid-cols-6 items-center gap-4">
                             <Label htmlFor="reason" className="col-span-6 sm:col-auto">
-                                Reason Text
+                                Display Text
                             </Label>
                             <AutosizeTextarea
                                 id="reason"
